@@ -31,6 +31,9 @@ Resources:
           Properties:
             Path: /{proxy+}
             Method: ANY
+      Policies:
+        - SecretsManagerReadWrite
+        - AmazonCognitoPowerUser
 
 
 Outputs:
