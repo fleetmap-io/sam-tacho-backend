@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  tacho-backend
+
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    VpcConfig:
+      SecurityGroupIds:
+        - sg-0218b58a60630dbf6
+      SubnetIds:
+        - subnet-033c1b8736acb59f9
+
+Resources:
+  mainFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.main
+      Runtime: nodejs16.x
+      Architectures:
+        - x86_64
+      Events:
+        ProxyApiRoot:
+          Type: Api
+          Properties:
+            Path: /
+            Method: ANY
+        ProxyApiGreedy:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+
+
+Outputs:
+  ExpressAppAPI:
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+
