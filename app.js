@@ -25,7 +25,6 @@ function getCognito(origin) {
 async function getEmail (origin, accessTokenFromClient) {
     const cognitoExpress = getCognito(origin)
     const cognitoUser = await cognitoExpress.validate(accessTokenFromClient.replace('Bearer ', ''))
-    console.log(cognitoUser)
     return cognitoUser.email
 }
 
@@ -43,13 +42,31 @@ app.use(async function (req, res, next) {
 })
 app.get('/', async (req, resp) => {
     try {
-        const email = await getEmail(req.headers.origin, req.headers.authorization)
+        const email = resp.locals.user
         console.log('Get TachoDownloads User:'+email)
-        const sql = `select * from tacho_remotedownload tr 
-            inner join tc_users u on traccar.json_extract_c(u.attributes, '$.companyId') = tr.companyid
-            inner join tc_user_device td on u.id = td.userid and tr.entityid = td.deviceid
-            where u.email = '${email}'`
+        const sql = `select tr.id, tr.requestdate, tr.status, tr.companyid, tr.type, tr.entityid, tr.conclusiondate, tr.s3id, tr.automatic
+        from tacho_remotedownload tr
+        inner join tc_users u on traccar.json_extract_c(u.attributes, '$.companyId') = tr.companyid
+        left join tc_user_device td on u.id = td.userid and tr.entityid = td.deviceid and tr.type = 'V'
+        left join tc_user_driver tdr on u.id = tdr.userid and tr.entityid = tdr.driverid and tr.type = 'D'
+        where (td.deviceid is not null or tdr.driverid is not null) and u.email = '${email}'
+        group by tr.id, tr.requestdate, tr.status, tr.companyid, tr.type, tr.entityid, tr.conclusiondate, tr.s3id, tr.automatic
+        `
         resp.json( await mysql.query(sql))
+    } catch (e) {
+        resp.json({m: e.message})
+    }
+})
+app.get('/tachostatus/', async (req, resp) => {
+    try {
+        const email = resp.locals.user
+        console.log('Get Tacho Status User:'+email)
+        const sql = `select tr.lastupdate
+        from tacho_remotedownload_last_update tr
+        inner join tc_users u on traccar.json_extract_c(u.attributes, '$.companyId') = tr.companyid
+        where u.email = '${email}'`
+        const result = await mysql.query(sql)
+        resp.json(result.length ? result[0] : null)
     } catch (e) {
         resp.json({m: e.message})
     }
