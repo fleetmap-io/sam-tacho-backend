@@ -35,19 +35,21 @@ app.use(async function (req, res, next) {
     next()
 })
 
-const sqlTachoDownloads = `select tr.id, tr.requestdate, tr.status, tr.companyid, tr.type, tr.entityid, 
+const sqlTachoDownloads = `select tr.id, tr.requestdate, tr.startdate, tr.enddate, tr.status, tr.companyid, tr.type, tr.entityid, 
         tr.conclusiondate, tr.s3id, tr.automatic
         from tacho_remotedownload tr
         inner join tc_users u on traccar.json_extract_c(u.attributes, '$.companyId') = tr.companyid
         left join tc_user_device td on u.id = td.userid and tr.entityid = td.deviceid and tr.type = 'V'
         left join tc_user_driver tdr on u.id = tdr.userid and tr.entityid = tdr.driverid and tr.type = 'D'`
 
+const groupBy = 'group by tr.id, tr.requestdate, tr.startdate, tr.enddate, tr.status, tr.companyid, tr.type, tr.entityid, tr.conclusiondate, tr.s3id, tr.automatic'
+
 app.get('/', async (req, resp) => {
     try {
         const email = resp.locals.user
         console.log('TachoDownloads User:',email)
         const sql = `${sqlTachoDownloads} where (td.deviceid is not null or tdr.driverid is not null) and u.email = '${email}'
-        group by tr.id, tr.requestdate, tr.status, tr.companyid, tr.type, tr.entityid, tr.conclusiondate, tr.s3id, tr.automatic
+        ${groupBy}
         `
         resp.json( await mysql.query(sql))
     } catch (e) {
@@ -75,7 +77,7 @@ app.post('/tachodownloads/', async (req, resp) => {
         console.log('TachoDownloads by dates User:',email,body)
         const sql = `${sqlTachoDownloads} where (td.deviceid is not null or tdr.driverid is not null) and u.email = '${email}'
         and tr.requestdate > '${body.startDate}' and tr.requestdate < '${body.endDate}'
-        group by tr.id, tr.requestdate, tr.status, tr.companyid, tr.type, tr.entityid, tr.conclusiondate, tr.s3id, tr.automatic
+        ${groupBy}
         `
         resp.json( await mysql.query(sql))
     } catch (e) {
@@ -87,9 +89,12 @@ app.get('/tachodownloads/:deviceId', async (req, resp) => {
         const email = resp.locals.user
         console.log('Get Tacho Downloads by device')
         const deviceId = req.params.deviceId
-        console.log(email)
-        resp.json( await mysql.query(
-            'select * from tacho_remotedownload tr where entityid='+deviceId+' order by requestdate desc limit 10'))
+        const sql = `${sqlTachoDownloads} where (td.deviceid is not null or tdr.driverid is not null) and u.email = '${email}'
+        and entityid=${deviceId}
+        ${groupBy}
+        order by requestdate desc limit 10
+        `
+        resp.json( await mysql.query(sql))
     } catch (e) {
         resp.json({m: e.message})
     }
