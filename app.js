@@ -49,6 +49,7 @@ app.get('/', async (req, resp) => {
         const email = resp.locals.user
         console.log('TachoDownloads User:',email)
         const sql = `${sqlTachoDownloads} where (td.deviceid is not null or tdr.driverid is not null) and u.email = '${email}'
+        and tr.status in (0,1)
         ${groupBy}
         `
         resp.json( await mysql.query(sql))
@@ -77,6 +78,19 @@ app.post('/tachodownloads/', async (req, resp) => {
         console.log('TachoDownloads by dates User:',email,body)
         const sql = `${sqlTachoDownloads} where (td.deviceid is not null or tdr.driverid is not null) and u.email = '${email}'
         and tr.requestdate > '${body.startDate}' and tr.requestdate < '${body.endDate}'
+        ${groupBy}
+        `
+        resp.json( await mysql.query(sql))
+    } catch (e) {
+        resp.json({m: e.message})
+    }
+})
+app.get('/lasttachodownloads/', async (req, resp) => {
+    try {
+        const email = resp.locals.user
+        console.log('Last TachoDownloads User:',email)
+        const sql = `${sqlTachoDownloads} where (td.deviceid is not null or tdr.driverid is not null) and u.email = '${email}'
+        and tr.id in (SELECT MAX(id) FROM tacho_remotedownload GROUP BY entityid, TYPE)
         ${groupBy}
         `
         resp.json( await mysql.query(sql))
