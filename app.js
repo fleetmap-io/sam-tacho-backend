@@ -98,6 +98,19 @@ app.get('/lasttachodownloads/', async (req, resp) => {
         resp.json({m: e.message})
     }
 })
+app.get('/tachoconnectionstatus/', async (req, resp) => {
+    try {
+        const email = resp.locals.user
+        console.log('Tacho connection status:',email)
+        const sql = `select ti.* from tacho_instalation ti 
+        inner join tc_users u inner join tc_user_device td on u.id = td.userid and td.deviceid = ti.deviceid 
+        where u.email = '${email}'
+        `
+        resp.json( await mysql.query(sql))
+    } catch (e) {
+        resp.json({m: e.message})
+    }
+})
 app.get('/tachodownloads/:deviceId', async (req, resp) => {
     try {
         const email = resp.locals.user
