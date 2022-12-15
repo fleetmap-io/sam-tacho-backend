@@ -30,6 +30,9 @@ async function validate(cognitoExpress, accessTokenFromClient, retry=3) {
     try {
         return await cognitoExpress.validate(accessTokenFromClient.replace('Bearer ', ''));
     } catch (e) {
+        if (e.message === 'jwt expired') {
+            throw e
+        }
         if (--retry) {
             return await validate(cognitoExpress, accessTokenFromClient, retry);
         } else {
@@ -42,10 +45,17 @@ app.use(async function (req, res, next) {
     const cognitoExpress = getCognito(req.headers.origin)
     const accessTokenFromClient = req.headers.authorization
     if (!accessTokenFromClient) return res.status(401).send('Access Token missing from header')
-    const user = await validate(cognitoExpress, accessTokenFromClient)
-    const resp = await client.send(new AdminGetUserCommand({Username: user['cognito:username'], UserPoolId: getUserPool(req.headers.origin)}))
-    res.locals.user = resp.UserAttributes.find(a => a.Name === 'email').Value
-    next()
+    try {
+        const user = await validate(cognitoExpress, accessTokenFromClient)
+        const resp = await client.send(new AdminGetUserCommand({
+            Username: user['cognito:username'],
+            UserPoolId: getUserPool(req.headers.origin)
+        }))
+        res.locals.user = resp.UserAttributes.find(a => a.Name === 'email').Value
+        next()
+    } catch(e) {
+        res.redirect('/')
+    }
 })
 
 const sqlTachoDownloads = `select tr.id, tr.requestdate, tr.startdate, tr.enddate, tr.status, tr.companyid, tr.type, tr.entityid, 
@@ -115,7 +125,7 @@ app.get('/tachoconnectionstatus/', async (req, resp) => {
     try {
         const email = resp.locals.user
         console.log('Tacho connection status:',email)
-        const sql = `select ti.* from tacho_instalation ti 
+        const sql = `select ti.* from tacho_installation ti 
         inner join tc_users u inner join tc_user_device td on u.id = td.userid and td.deviceid = ti.deviceid 
         where u.email = '${email}'
         `
