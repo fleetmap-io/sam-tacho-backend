@@ -25,11 +25,24 @@ function getCognito(origin) {
 // noinspection JSCheckFunctionSignatures
 app.use(cors({ origin: true, credentials:true, methods: 'GET,PUT,POST,DELETE,OPTIONS' }))
 app.use(bodyParser.json())
+
+async function validate(cognitoExpress, accessTokenFromClient, retry=3) {
+    try {
+        return await cognitoExpress.validate(accessTokenFromClient.replace('Bearer ', ''));
+    } catch (e) {
+        if (--retry) {
+            return await validate(cognitoExpress, accessTokenFromClient, retry);
+        } else {
+            console.error('giving up', e)
+        }
+    }
+}
+
 app.use(async function (req, res, next) {
     const cognitoExpress = getCognito(req.headers.origin)
     const accessTokenFromClient = req.headers.authorization
     if (!accessTokenFromClient) return res.status(401).send('Access Token missing from header')
-    const user = await cognitoExpress.validate(accessTokenFromClient.replace('Bearer ', ''))
+    const user = await validate(cognitoExpress, accessTokenFromClient)
     const resp = await client.send(new AdminGetUserCommand({Username: user['cognito:username'], UserPoolId: getUserPool(req.headers.origin)}))
     res.locals.user = resp.UserAttributes.find(a => a.Name === 'email').Value
     next()
