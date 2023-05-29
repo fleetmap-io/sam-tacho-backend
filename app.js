@@ -79,7 +79,7 @@ app.get('/', async (req, resp) => {
     try {
         const email = resp.locals.user
         console.log('TachoDownloads User:',email)
-        const sql = `${sqlTachoDownloads.replace('userEmail',email)} where (td.deviceid is not null or tdr.driverid is not null) and u.email = '${email}'
+        const sql = `${sqlTachoDownloads.replaceAll('userEmail',email)} where (td.deviceid is not null or tdr.driverid is not null) and u.email = '${email}'
         and tr.status in (0,1)
         ${groupBy}
         `
