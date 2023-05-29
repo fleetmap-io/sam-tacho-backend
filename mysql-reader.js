@@ -12,6 +12,7 @@ const _connection = secrets.getSecret('gpsmanager-db').then(secret =>
 )
 
 async function query(sql) {
+    console.log('query', query)
     const connection = await _connection
     const [result] = await connection.query(sql)
     return result
