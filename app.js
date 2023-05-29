@@ -58,11 +58,19 @@ app.use(async function (req, res, next) {
     }
 })
 
+const sqlDevices = `select id as deviceid from tc_devices where
+        id in (select tud.deviceid from tc_users u
+                inner join tc_user_device tud on tud.userid = u.id
+                where u.email = 'userEmail') or
+        groupId in (select tug.groupid from tc_users u
+                inner join tc_user_group tug on tug.userid = u.id
+                where u.email = 'userEmail')`
+
 const sqlTachoDownloads = `select tr.id, tr.requestdate, tr.startdate, tr.enddate, tr.status, tr.companyid, tr.type, tr.entityid, 
         tr.conclusiondate, tr.s3id, tr.automatic
         from tacho_remotedownload tr
         inner join tc_users u on traccar.json_extract_c(u.attributes, '$.companyId') = tr.companyid
-        left join tc_user_device td on u.id = td.userid and tr.entityid = td.deviceid and tr.type = 'V'
+        left join '${sqlDevices}' td on tr.entityid = td.deviceid and tr.type = 'V'
         left join tc_user_driver tdr on u.id = tdr.userid and tr.entityid = tdr.driverid and tr.type = 'D'`
 
 const groupBy = 'group by tr.id, tr.requestdate, tr.startdate, tr.enddate, tr.status, tr.companyid, tr.type, tr.entityid, tr.conclusiondate, tr.s3id, tr.automatic'
@@ -71,7 +79,7 @@ app.get('/', async (req, resp) => {
     try {
         const email = resp.locals.user
         console.log('TachoDownloads User:',email)
-        const sql = `${sqlTachoDownloads} where (td.deviceid is not null or tdr.driverid is not null) and u.email = '${email}'
+        const sql = `${sqlTachoDownloads.replaceAll('userEmail',email)} where (td.deviceid is not null or tdr.driverid is not null) and u.email = '${email}'
         and tr.status in (0,1)
         ${groupBy}
         `
