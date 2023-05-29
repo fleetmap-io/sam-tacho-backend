@@ -70,7 +70,7 @@ const sqlTachoDownloads = `select tr.id, tr.requestdate, tr.startdate, tr.enddat
         tr.conclusiondate, tr.s3id, tr.automatic
         from tacho_remotedownload tr
         inner join tc_users u on traccar.json_extract_c(u.attributes, '$.companyId') = tr.companyid
-        left join '${sqlDevices}' td on tr.entityid = td.deviceid and tr.type = 'V'
+        left join (${sqlDevices}) td on tr.entityid = td.deviceid and tr.type = 'V'
         left join tc_user_driver tdr on u.id = tdr.userid and tr.entityid = tdr.driverid and tr.type = 'D'`
 
 const groupBy = 'group by tr.id, tr.requestdate, tr.startdate, tr.enddate, tr.status, tr.companyid, tr.type, tr.entityid, tr.conclusiondate, tr.s3id, tr.automatic'
