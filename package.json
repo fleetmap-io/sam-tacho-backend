@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "sam build",
     "deploy": "sam deploy --region us-east-1 --stack-name sam-tacho-backend --resolve-s3 --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND",
     "watch": "sam sync --stack-name sam-tacho-backend --watch --profile pinme --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
   },
