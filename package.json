@@ -19,7 +19,7 @@
     "cognito-express": "^3.0.1",
     "cors": "^2.8.5",
     "express": "^4.18.1",
-    "fleetmap-partners": "^1.0.99",
+    "fleetmap-partners": "^1.0.121",
     "mysql2": "^2.3.3"
   }
 }
