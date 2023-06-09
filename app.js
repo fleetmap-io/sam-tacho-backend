@@ -107,7 +107,7 @@ app.post('/tachodownloads/', async (req, resp) => {
         const email = resp.locals.user
         const body = req.body
         console.log('TachoDownloads by dates User:',email,body)
-        const sql = `${sqlTachoDownloads} where (td.deviceid is not null or tdr.driverid is not null) and u.email = '${email}'
+        const sql = `${sqlTachoDownloads.replaceAll('userEmail',email)} where (td.deviceid is not null or tdr.driverid is not null) and u.email = '${email}'
         and tr.requestdate > '${body.startDate}' and tr.requestdate < '${body.endDate}'
         ${groupBy}
         `
@@ -120,7 +120,7 @@ app.get('/lasttachodownloads/', async (req, resp) => {
     try {
         const email = resp.locals.user
         console.log('Last TachoDownloads User:',email)
-        const sql = `${sqlTachoDownloads} where (td.deviceid is not null or tdr.driverid is not null) and u.email = '${email}'
+        const sql = `${sqlTachoDownloads.replaceAll('userEmail',email)} where (td.deviceid is not null or tdr.driverid is not null) and u.email = '${email}'
         and tr.id in (SELECT MAX(id) FROM tacho_remotedownload GROUP BY entityid, TYPE)
         ${groupBy}
         `
@@ -134,7 +134,8 @@ app.get('/tachoconnectionstatus/', async (req, resp) => {
         const email = resp.locals.user
         console.log('Tacho connection status:',email)
         const sql = `select ti.* from tacho_installation ti 
-        inner join tc_users u inner join tc_user_device td on u.id = td.userid and td.deviceid = ti.deviceid 
+        inner join tc_users u 
+        inner join (${sqlDevices.replaceAll('userEmail',email)}) td on td.deviceid = ti.deviceid 
         where u.email = '${email}'
         `
         resp.json( await mysql.query(sql))
@@ -147,7 +148,7 @@ app.get('/tachodownloads/:deviceId', async (req, resp) => {
         const email = resp.locals.user
         console.log('Get Tacho Downloads by device')
         const deviceId = req.params.deviceId
-        const sql = `${sqlTachoDownloads} where (td.deviceid is not null or tdr.driverid is not null) and u.email = '${email}'
+        const sql = `${sqlTachoDownloads.replaceAll('userEmail',email)} where (td.deviceid is not null or tdr.driverid is not null) and u.email = '${email}'
         and entityid=${deviceId}
         ${groupBy}
         order by requestdate desc limit 10
