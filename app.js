@@ -69,7 +69,7 @@ const sqlDevices = `select id as deviceid from tc_devices where
 const sqlTachoDownloads = `select tr.id, tr.requestdate, tr.startdate, tr.enddate, tr.status, tr.companyid, tr.type, tr.entityid, 
         tr.conclusiondate, tr.s3id, tr.automatic
         from tacho_remotedownload tr
-        inner join tc_users u on traccar.json_extract_c(u.attributes, '$.companyId') = tr.companyid
+        inner join tc_users u on u.attributes->>'$.companyId' = tr.companyid
         left join (${sqlDevices}) td on tr.entityid = td.deviceid and tr.type = 'V'
         left join tc_user_driver tdr on u.id = tdr.userid and tr.entityid = tdr.driverid and tr.type = 'D'`
 
@@ -94,7 +94,7 @@ app.get('/tachostatus/', async (req, resp) => {
         console.log('Tacho Status User:',email)
         const sql = `select tr.lastupdate
         from tacho_remotedownload_last_update tr
-        inner join tc_users u on traccar.json_extract_c(u.attributes, '$.companyId') = tr.companyid
+        inner join tc_users u on u.attributes->>'$.companyId' = tr.companyid
         where u.email = '${email}'`
         const result = await mysql.query(sql)
         resp.json(result.length ? result[0] : null)
